@@ -18,6 +18,22 @@ else:
     print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
 
 
+
+def load_graph_nodes(graph):
+    vgg_input_tensor_name = 'image_input:0'
+    vgg_keep_prob_tensor_name = 'keep_prob:0'
+    vgg_layer3_out_tensor_name = 'layer3_out:0'
+    vgg_layer4_out_tensor_name = 'layer4_out:0'
+    vgg_layer7_out_tensor_name = 'layer7_out:0'
+
+    w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
+    keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+
+    return w1, keep_prob, layer3, layer4, layer7, graph
+
 def load_vgg(sess, vgg_path):
     """
     Load Pretrained VGG Model into TensorFlow.
@@ -29,26 +45,11 @@ def load_vgg(sess, vgg_path):
     #   Use tf.saved_model.loader.load to load the model and weights
 
     vgg_tag = 'vgg16'
-    vgg_input_tensor_name = 'image_input:0'
-    vgg_keep_prob_tensor_name = 'keep_prob:0'
-    vgg_layer3_out_tensor_name = 'layer3_out:0'
-    vgg_layer4_out_tensor_name = 'layer4_out:0'
-    vgg_layer7_out_tensor_name = 'layer7_out:0'
-
     tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
+
     graph = tf.get_default_graph()
+    return load_graph_nodes(graph)
 
-    # for op in graph.get_operations():
-    #     print(op)
-    # print(tf.trainable_variables())
-
-    w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
-    keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
-    layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
-    layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
-    layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
-
-    return w1, keep_prob, layer3, layer4, layer7, graph
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -264,9 +265,12 @@ def run():
     with tf.Session() as sess:
         tf.import_graph_def(graph_def)
 
+        graph = tf.get_default_graph()
+
         print('Using frozen graph')
         print_trainable()
 
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
