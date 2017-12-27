@@ -66,7 +66,7 @@ def test_load_vgg(load_vgg, tf_module):
         test_vgg_layer4_out = tf.placeholder(tf.float32, name='layer4_out')
         test_vgg_layer7_out = tf.placeholder(tf.float32, name='layer7_out')
 
-        input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
+        input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, graph = load_vgg(sess, vgg_path)
 
         assert mock_load_model.called, \
             'tf.saved_model.loader.load() not called'

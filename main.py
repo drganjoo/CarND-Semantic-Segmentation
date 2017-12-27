@@ -42,28 +42,13 @@ def load_vgg(sess, vgg_path):
     #     print(op)
     # print(tf.trainable_variables())
 
-    nodes = ['image_input', 'keep_prob', 'layer3_out',
-             'layer4_out', 'layer7_out']
-
-    output_graph_def = tf.graph_util.convert_variables_to_constants(
-        sess,
-        graph.as_graph_def(),
-        nodes
-    )
-
-    # tf.reset_default_graph()
-    tf.import_graph_def(output_graph_def)
-
-    graph = tf.get_default_graph()
-
     w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
     keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
     layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
     layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
     layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
 
-
-    return w1, keep_prob, layer3, layer4, layer7
+    return w1, keep_prob, layer3, layer4, layer7, graph
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -210,6 +195,13 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 tests.test_train_nn(train_nn)
 
 
+def print_trainable():
+    print('~' * 100)
+    print('Trainable variables:')
+    print(tf.trainable_variables())
+    print('~' * 100)
+
+
 def run():
     epochs = 50
     batch_size = 8
@@ -231,19 +223,39 @@ def run():
     print('-' * 100)
 
     save_best = True
-    #tf.reset_default_graph()
+    tf.reset_default_graph()
 
     with tf.Session() as sess:
-        # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
+
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
 
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
-        # TODO: Build NN using load_vgg, layers, and optimize function
-        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out, graph = load_vgg(sess, vgg_path)
+
+        print_trainable()
+
+        print('Freezing graph')
+
+        nodes = ['image_input', 'keep_prob', 'layer3_out',
+                 'layer4_out', 'layer7_out']
+
+        output_graph_def = tf.graph_util.convert_variables_to_constants(
+            sess,
+            graph.as_graph_def(),
+            nodes
+        )
+
+    tf.reset_default_graph()
+    with tf.Session() as sess:
+        tf.import_graph_def(output_graph_def)
+
+        print('Using frozen graph')
+        print_trainable()
+
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
@@ -261,9 +273,6 @@ def run():
 
         sess.run(tf.global_variables_initializer())
 
-        print('Following are trainable variables:')
-        print(tf.trainable_variables())
-        print('~' * 100)
 
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
