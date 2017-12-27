@@ -203,12 +203,15 @@ def print_trainable():
 
 
 def run():
+    global save_best
+
     epochs = 50
     batch_size = 8
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
     runs_dir = './runs'
+    frozen_graph = data_dir + '/frozen.pb'
     tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
@@ -249,9 +252,17 @@ def run():
             nodes
         )
 
+        with tf.gfile.GFile(frozen_graph, "wb") as f:
+            f.write(output_graph_def.SerializeToString())
+
     tf.reset_default_graph()
+
+    with tf.gfile.GFile(frozen_graph, "rb") as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+
     with tf.Session() as sess:
-        tf.import_graph_def(output_graph_def)
+        tf.import_graph_def(graph_def)
 
         print('Using frozen graph')
         print_trainable()
