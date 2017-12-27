@@ -270,6 +270,10 @@ def run():
         print('Using frozen graph')
         print_trainable()
 
+        for name in graph_def.node:
+            print(name)
+
+
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
