@@ -150,6 +150,8 @@ tests.test_optimize(optimize)
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
              correct_label, keep_prob, learning_rate):
+
+    global save_best
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -181,13 +183,12 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                                           keep_prob: 0.5,
                                           learning_rate: 0.0008})
 
-        if save_best:
-            loss = sess.run(cross_entropy_loss)
-            print('Loss:', loss)
+        loss = sess.run(cross_entropy_loss)
+        print('Loss:', loss)
 
-            if loss < lowest_score:
-                print('Found lowest loss: ', loss, 'saving!!!!')
-                saver.save(sess, best_filename)
+        if save_best and loss < lowest_score:
+            print('Found lowest loss: ', loss, 'saving!!!!')
+            saver.save(sess, best_filename)
 
 tests.test_train_nn(train_nn)
 
