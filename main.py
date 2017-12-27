@@ -241,6 +241,8 @@ def run():
         # test_writer = tf.summary.FileWriter('logs')
         # test_writer.add_graph(sess.graph)
 
+        sess.run(tf.global_variables_initializer())
+
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
                  correct_label, keep_prob, learning_rate)
