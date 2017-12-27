@@ -35,12 +35,12 @@ def load_vgg(sess, vgg_path):
     vgg_layer7_out_tensor_name = 'layer7_out:0'
 
     tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
-
     graph = tf.get_default_graph()
 
-    for op in graph.get_operations():
-        print(op)
-    print(tf.trainable_variables())
+    # for op in graph.get_operations():
+    #     print(op)
+    # print(tf.trainable_variables())
+
 
     w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
     keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
@@ -105,13 +105,21 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
-    # logits = tf.reshape(nn_last_layer, (-1, num_classes))
-    logits = nn_last_layer
+    # print(nn_last_layer.get_shape())
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    # print(logits.get_shape())
+    #logits = nn_last_layer
 
     # tf.Print(tf.shape(logits))
 
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, correct_label)
-    cross_entropy_loss = tf.reduce_mean(cross_entropy)
+    # https://stackoverflow.com/questions/46615623/do-we-need-to-add-the-regularization-loss-into-the-total-loss-in-tensorflow-mode
+
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=correct_label)
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    reg_constant = 1
+    loss = cross_entropy + reg_constant * sum(reg_losses)
+
+    cross_entropy_loss = tf.reduce_mean(loss)
 
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     training_operation = optimizer.minimize(cross_entropy_loss)
@@ -120,7 +128,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 tests.test_optimize(optimize)
 
 
-def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy, input_image,
+def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
              correct_label, keep_prob, learning_rate):
     """
     Train neural network and print out the loss during training.
@@ -135,18 +143,31 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy, 
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
+
+    saver = tf.train.Saver()
+    best_filename = './best.ckpt'
+    lowest_score = 9999
+
     for epoch in range(epochs):
         for batch_images, batch_labels in get_batches_fn(batch_size):
             sess.run(train_op, feed_dict={input_image : batch_images,
-                                          correct_label: batch_labels, keep_prob: 0.5})
+                                          correct_label: batch_labels,
+                                          keep_prob: 0.5,
+                                          learning_rate: 0.0008})
+
+        loss = sess.run(cross_entropy_loss)
+        print('Loss:', loss)
+
+        if loss < lowest_score:
+            print('Found lowest loss: ', loss, 'saving!!!!')
+            saver.save(sess, best_filename)
 
 tests.test_train_nn(train_nn)
 
 
 def run():
-    epochs = 400
-    batch_size = 128
-    learning_rate = 0.0008
+    epochs = 50
+    batch_size = 20
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
@@ -160,6 +181,8 @@ def run():
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
 
+    tf.reset_default_graph()
+
     with tf.Session() as sess:
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
@@ -171,16 +194,22 @@ def run():
 
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
-        layer_output = layers(layer3_out, layer4_out, layer7_out)
+        layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
         correct_label = tf.placeholder(tf.uint8, [None, image_shape[0], image_shape[1]], name = 'correct_label')
+        learning_rate = tf.placeholder(tf.float32, 0, name = 'learning_rate')
 
         logits, training_operation, cross_entropy_loss = optimize(layer_output, correct_label, learning_rate, num_classes)
 
+
+        ## use tensorboard to save the graph and view it
+        ## 
+
+
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
-                 correct_label, keep_prob)
+                 correct_label, keep_prob, learning_rate)
 
         # TODO: Save inference data using helper.save_inference_samples
         helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
