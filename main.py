@@ -69,26 +69,28 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     conv_1x1_upscaled = tf.layers.conv2d_transpose(conv_1x1, num_classes, 4, 2, padding = 'same',
                                 kernel_regularizer=regularizer)
 
-    pool4 = vgg_layer4_out
+
+    pool4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding = 'same',
+                                 kernel_regularizer=regularizer)
 
     print(vgg_layer7_out.get_shape())
     print(conv_1x1.get_shape())
     print(conv_1x1_upscaled.get_shape())
-    print(pool4.get_shape())
+    print(pool4_1x1.get_shape())
 
+    # tf.Print(pool4_1x1, [tf.shape(conv_1x1_upscaled), tf.shape(pool4_1x1)])
 
-    tf.Print(pool4, [tf.shape(conv_1x1_upscaled), tf.shape(pool4)])
-
-    c1x1_p4 = tf.add(conv_1x1_upscaled , pool4)
+    c1x1_p4 = tf.add(conv_1x1_upscaled , pool4_1x1)
     c1x1_p4_upscaled = tf.layers.conv2d_transpose(c1x1_p4, num_classes, 4, 2, padding = 'same',
                                 kernel_regularizer=regularizer)
 
-    pool3 = vgg_layer3_out
-    c1x1_p4_p3 = tf.add(c1x1_p4_upscaled, pool3)
+    pool3_1x1 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding='same',
+                             kernel_regularizer=regularizer)
+    c1x1_p4_p3 = tf.add(c1x1_p4_upscaled, pool3_1x1)
     output = tf.layers.conv2d_transpose(c1x1_p4_p3, num_classes, 16, 8, padding = 'same',
                                 kernel_regularizer=regularizer)
 
-    tf.Print(output, tf.shape(output))
+    # tf.Print(output, tf.shape(output))
     return output
 
 tests.test_layers(layers)
@@ -103,9 +105,10 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
-    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    # logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    logits = nn_last_layer
 
-    tf.Print(tf.shape(logits))
+    # tf.Print(tf.shape(logits))
 
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, correct_label)
     cross_entropy_loss = tf.reduce_mean(cross_entropy)
@@ -117,7 +120,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 tests.test_optimize(optimize)
 
 
-def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, logits, input_image,
+def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy, input_image,
              correct_label, keep_prob, learning_rate):
     """
     Train neural network and print out the loss during training.
@@ -176,7 +179,7 @@ def run():
         logits, training_operation, cross_entropy_loss = optimize(layer_output, correct_label, learning_rate, num_classes)
 
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
-                 logits, input_image,
+                 cross_entropy_loss, input_image,
                  correct_label, keep_prob)
 
         # TODO: Save inference data using helper.save_inference_samples
