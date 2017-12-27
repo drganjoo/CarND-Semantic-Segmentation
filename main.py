@@ -45,8 +45,11 @@ def load_vgg(sess, vgg_path):
     tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
 
     graph = tf.get_default_graph()
-    nodes = ['image_input:0', 'keep_prob:0', 'layer3_out:0', 'layer4_out:0','layer7_out:0']
-    return load_graph_nodes(graph, nodes)
+    node_names = ['image_input:0', 'keep_prob:0', 'layer3_out:0', 'layer4_out:0','layer7_out:0']
+    nodes = load_graph_nodes(graph, node_names)
+    nodes.append(graph)
+
+    return nodes
 
 tests.test_load_vgg(load_vgg, tf)
 
