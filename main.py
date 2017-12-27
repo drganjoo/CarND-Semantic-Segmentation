@@ -204,9 +204,10 @@ def run():
 
 
         ## use tensorboard to save the graph and view it
-        ## 
+        test_writer = tf.summary.FileWriter('logs')
+        test_writer.add_graph(sess.graph)
 
-
+        return
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
                  correct_label, keep_prob, learning_rate)
