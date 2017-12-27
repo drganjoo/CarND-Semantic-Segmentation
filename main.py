@@ -178,6 +178,9 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         print('Epoch: ', epoch)
 
         for batch_images, batch_labels in get_batches_fn(batch_size):
+            print('Batch: ', batch_images.shape)
+            print('Label Size: ', batch_labels.shape)
+
             sess.run(train_op, feed_dict={input_image : batch_images,
                                           correct_label: batch_labels,
                                           keep_prob: 0.5,
@@ -195,7 +198,7 @@ tests.test_train_nn(train_nn)
 
 def run():
     epochs = 50
-    batch_size = 20
+    batch_size = 8
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
@@ -243,6 +246,10 @@ def run():
         # test_writer.add_graph(sess.graph)
 
         sess.run(tf.global_variables_initializer())
+
+        print('Following are trainable variables:')
+        print(tf.trainable_variables())
+        print('~' * 100)
 
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
