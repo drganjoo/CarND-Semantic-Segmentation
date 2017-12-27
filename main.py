@@ -44,6 +44,9 @@ def load_vgg(sess, vgg_path):
     vgg_tag = 'vgg16'
     tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
 
+    for n in tf.get_default_graph().as_graph_def().node:
+        print(n.name)
+
     graph = tf.get_default_graph()
     node_names = ['image_input:0', 'keep_prob:0', 'layer3_out:0', 'layer4_out:0','layer7_out:0']
     nodes = load_graph_nodes(graph, node_names)
@@ -70,8 +73,6 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                  kernel_regularizer=regularizer)
     conv_1x1_upscaled = tf.layers.conv2d_transpose(conv_one_by_one, num_classes, 4, 2, padding = 'same',
                                 kernel_regularizer=regularizer)
-
-
     pool4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding = 'same',
                                  kernel_regularizer=regularizer)
 
@@ -270,6 +271,11 @@ def run():
 
         for n in graph_def.node:
             print(n.name)
+
+        print('*' * 100)
+        
+        for op in graph.get_operations():
+            print(op.name)
 
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph, frozen_node_names)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
