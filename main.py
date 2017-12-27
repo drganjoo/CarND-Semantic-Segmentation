@@ -5,6 +5,7 @@ import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
+save_best = False
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -64,19 +65,19 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     regularizer = tf.contrib.layers.l2_regularizer(1e-3)
 
     #conv_1_1 = vgg_layer7_out
-    conv_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding = 'same',
+    conv_one_by_one = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding = 'same',
                                  kernel_regularizer=regularizer)
-    conv_1x1_upscaled = tf.layers.conv2d_transpose(conv_1x1, num_classes, 4, 2, padding = 'same',
+    conv_1x1_upscaled = tf.layers.conv2d_transpose(conv_one_by_one, num_classes, 4, 2, padding = 'same',
                                 kernel_regularizer=regularizer)
 
 
     pool4_1x1 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding = 'same',
                                  kernel_regularizer=regularizer)
 
-    print(vgg_layer7_out.get_shape())
-    print(conv_1x1.get_shape())
-    print(conv_1x1_upscaled.get_shape())
-    print(pool4_1x1.get_shape())
+    # print(vgg_layer7_out.get_shape())
+    # print(conv_1x1.get_shape())
+    # print(conv_1x1_upscaled.get_shape())
+    # print(pool4_1x1.get_shape())
 
     # tf.Print(pool4_1x1, [tf.shape(conv_1x1_upscaled), tf.shape(pool4_1x1)])
 
@@ -90,7 +91,15 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     output = tf.layers.conv2d_transpose(c1x1_p4_p3, num_classes, 16, 8, padding = 'same',
                                 kernel_regularizer=regularizer)
 
-    # tf.Print(output, tf.shape(output))
+    #tf.Print(output, tf.shape(output))
+    print('conv_1x1: ', conv_one_by_one)
+    print('conv_1x1 Upscaled: ', conv_1x1_upscaled)
+    print('pool4_1x1: ', pool4_1x1)
+    print('c1x1_p4: ', c1x1_p4)
+    print('c1x1_p4_upscaled: ', c1x1_p4_upscaled)
+    print('pool3_1x1: ', pool3_1x1)
+    print('c1x1_p4_p3: ', c1x1_p4_p3)
+    print('output: ', output)
     return output
 
 tests.test_layers(layers)
@@ -105,23 +114,34 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
-    # print(nn_last_layer.get_shape())
+
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
-    # print(logits.get_shape())
+    correct_label = tf.reshape(correct_label, (-1, num_classes))
+
+    # logits = nn_last_layer
+
+    print('Logits before shape:', nn_last_layer.get_shape())
+    print('Logits Shape: ', logits)
+    print('Correct label', correct_label)
+    print('learning_rate', learning_rate)
+
     #logits = nn_last_layer
 
     # tf.Print(tf.shape(logits))
 
     # https://stackoverflow.com/questions/46615623/do-we-need-to-add-the-regularization-loss-into-the-total-loss-in-tensorflow-mode
 
+
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=correct_label)
-    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-    reg_constant = 1
-    loss = cross_entropy + reg_constant * sum(reg_losses)
+    # reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    # reg_constant = 1
+    # loss = cross_entropy + reg_constant * sum(reg_losses)
+    loss = cross_entropy
 
     cross_entropy_loss = tf.reduce_mean(loss)
 
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
     training_operation = optimizer.minimize(cross_entropy_loss)
 
     return logits, training_operation, cross_entropy_loss
@@ -144,23 +164,30 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
 
-    saver = tf.train.Saver()
-    best_filename = './best.ckpt'
-    lowest_score = 9999
+    if save_best:
+        saver = tf.train.Saver()
+        best_filename = './best.ckpt'
+        lowest_score = 9999
+
+    # test_writer = tf.summary.FileWriter('logs')
+    # test_writer.add_graph(sess.graph)
 
     for epoch in range(epochs):
+        print('Epoch: ', epoch)
+
         for batch_images, batch_labels in get_batches_fn(batch_size):
             sess.run(train_op, feed_dict={input_image : batch_images,
                                           correct_label: batch_labels,
                                           keep_prob: 0.5,
                                           learning_rate: 0.0008})
 
-        loss = sess.run(cross_entropy_loss)
-        print('Loss:', loss)
+        if save_best:
+            loss = sess.run(cross_entropy_loss)
+            print('Loss:', loss)
 
-        if loss < lowest_score:
-            print('Found lowest loss: ', loss, 'saving!!!!')
-            saver.save(sess, best_filename)
+            if loss < lowest_score:
+                print('Found lowest loss: ', loss, 'saving!!!!')
+                saver.save(sess, best_filename)
 
 tests.test_train_nn(train_nn)
 
@@ -181,7 +208,12 @@ def run():
     # You'll need a GPU with at least 10 teraFLOPS to train on.
     #  https://www.cityscapes-dataset.com/
 
-    tf.reset_default_graph()
+    print('-' * 100)
+    print('Running training session')
+    print('-' * 100)
+
+    save_best = True
+    #tf.reset_default_graph()
 
     with tf.Session() as sess:
         # Path to vgg model
@@ -197,17 +229,18 @@ def run():
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
-        correct_label = tf.placeholder(tf.uint8, [None, image_shape[0], image_shape[1]], name = 'correct_label')
-        learning_rate = tf.placeholder(tf.float32, 0, name = 'learning_rate')
+        correct_label = tf.placeholder(tf.float32, [None, image_shape[0], image_shape[1], num_classes], name = 'correct_label')
+        learning_rate = tf.placeholder(tf.float32, shape=[], name = 'learning_rate')
 
         logits, training_operation, cross_entropy_loss = optimize(layer_output, correct_label, learning_rate, num_classes)
 
+        # graph = tf.get_default_graph()
+        # print(graph.get_collection(tf.GraphKeys.GLOBAL_VARIABLES))
 
         ## use tensorboard to save the graph and view it
-        test_writer = tf.summary.FileWriter('logs')
-        test_writer.add_graph(sess.graph)
+        # test_writer = tf.summary.FileWriter('logs')
+        # test_writer.add_graph(sess.graph)
 
-        return
         train_nn(sess, epochs, batch_size, get_batches_fn, training_operation,
                  cross_entropy_loss, input_image,
                  correct_label, keep_prob, learning_rate)
