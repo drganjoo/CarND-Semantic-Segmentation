@@ -19,20 +19,17 @@ else:
 
 
 
-def load_graph_nodes(graph):
-    vgg_input_tensor_name = 'image_input:0'
-    vgg_keep_prob_tensor_name = 'keep_prob:0'
-    vgg_layer3_out_tensor_name = 'layer3_out:0'
-    vgg_layer4_out_tensor_name = 'layer4_out:0'
-    vgg_layer7_out_tensor_name = 'layer7_out:0'
-
-    w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
-    keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
-    layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
-    layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
-    layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
-
-    return w1, keep_prob, layer3, layer4, layer7, graph
+def load_graph_nodes(graph, node_names):
+    nodes = [graph.get_tensor_by_name(name) for name in node_names]
+    return nodes
+    #
+    # w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
+    # keep_prob = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    # layer3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    # layer4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    # layer7 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+    #
+    # return w1, keep_prob, layer3, layer4, layer7, graph
 
 def load_vgg(sess, vgg_path):
     """
@@ -48,7 +45,8 @@ def load_vgg(sess, vgg_path):
     tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
 
     graph = tf.get_default_graph()
-    return load_graph_nodes(graph)
+    nodes = ['image_input:0', 'keep_prob:0', 'layer3_out:0', 'layer4_out:0','layer7_out:0']
+    return load_graph_nodes(graph, nodes)
 
 tests.test_load_vgg(load_vgg, tf)
 
@@ -241,26 +239,23 @@ def run():
         input_image, keep_prob, layer3_out, layer4_out, layer7_out, graph = load_vgg(sess, vgg_path)
 
         print_trainable()
-
         print('Freezing graph')
 
-        nodes = ['image_input', 'keep_prob', 'layer3_out',
-                 'layer4_out', 'layer7_out']
-
-        output_graph_def = tf.graph_util.convert_variables_to_constants(
+        frozen_node_names = ['image_input', 'keep_prob', 'layer3_out', 'layer4_out', 'layer7_out']
+        graph_def = tf.graph_util.convert_variables_to_constants(
             sess,
             graph.as_graph_def(),
-            nodes
+            frozen_node_names
         )
 
-        with tf.gfile.GFile(frozen_graph, "wb") as f:
-            f.write(output_graph_def.SerializeToString())
+        # with tf.gfile.GFile(frozen_graph, "wb") as f:
+        #     f.write(graph_def.SerializeToString())
 
     tf.reset_default_graph()
 
-    with tf.gfile.GFile(frozen_graph, "rb") as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
+    # with tf.gfile.GFile(frozen_graph, "rb") as f:
+    #     graph_def = tf.GraphDef()
+    #     graph_def.ParseFromString(f.read())
 
     with tf.Session() as sess:
         tf.import_graph_def(graph_def)
@@ -273,8 +268,7 @@ def run():
         for n in graph_def.node:
             print(n.name)
 
-
-        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph)
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph, frozen_node_names)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
