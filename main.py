@@ -160,6 +160,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     if len(collection) > 0:
         training_operation = optimizer.minimize(cross_entropy_loss, var_list=collection)
     else:
+        # for test cases 'fcn' scoped layers are not defined
         training_operation = optimizer.minimize(cross_entropy_loss)
 
     return logits, training_operation, cross_entropy_loss

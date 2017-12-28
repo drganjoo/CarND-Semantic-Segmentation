@@ -26,6 +26,26 @@ Pool3 layer from VGG16 is then converted to 1x1x2, added with the Pool4+LastLaye
 |Optimizer|AdamOptimizer|
 |Keep Probability| 0.5|
 
+#### Loss Function
+
+As suggested in the [Forum Post](https://discussions.udacity.com/t/here-is-some-advice-and-clarifications-about-the-semantic-segmentation-project/403100), I have included L2-Regularizer in the computation of loss function as well. The overall loss function:
+
+```
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=correct_label)
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    reg_constant = 1
+    loss = cross_entropy + reg_constant * sum(reg_losses)
+
+    cross_entropy_loss = tf.reduce_mean(loss)
+```
+
+Also, training has been limited to FCN layers only by passing the tensors to the AdamOptimizer as var_list
+
+```
+    collection = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='fcn')
+    training_operation = optimizer.minimize(cross_entropy_loss, var_list=collection)
+```
+
 #### Result
 
 |Epoch|Loss|
