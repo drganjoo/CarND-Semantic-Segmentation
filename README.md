@@ -1,36 +1,76 @@
 # Semantic Segmentation
+
 ### Introduction
-In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
 
-### Setup
-##### Frameworks and Packages
-Make sure you have the following is installed:
- - [Python 3](https://www.python.org/)
- - [TensorFlow](https://www.tensorflow.org/)
- - [NumPy](http://www.numpy.org/)
- - [SciPy](https://www.scipy.org/)
-##### Dataset
-Download the [Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) from [here](http://www.cvlibs.net/download.php?file=data_road.zip).  Extract the dataset in the `data` folder.  This will create the folder `data_road` with all the training a test images.
+The goal of the project is to identify parts of road in given images. Semantic Segmentation is to be carried out using Fully Convolutional Network (FCN).
 
-### Start
-##### Implement
-Implement the code in the `main.py` module indicated by the "TODO" comments.
-The comments indicated with "OPTIONAL" tag are not required to complete.
-##### Run
+#### Model Architecture
+
+Pretrained VGG16 that already has 1x1 convolution layers has been used. As first step, the last layer is converted from 1x1x4096 to 1x1x2 (as there are 2 classes, road and not-road). The last layer is then upscaled by 2.
+
+Pool4 layer from VGG16 is then converted to 1x1x2, added with last layer and then upscaled by 2.
+
+Pool3 layer from VGG16 is then converted to 1x1x2, added with the Pool4+LastLayer, then upscaled by 8
+
+#### Training Data
+
+[Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) has been downloaded from [here](http://www.cvlibs.net/download.php?file=data_road.zip) and used for training. VGG16 pretrained model is download from [here](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/vgg.zip)
+
+#### Model Parameters
+
+|Parameter Name|Value|
+|--|--|
+|Batch Size|10|
+|Epochs|30|
+|Learning Rate|0.0008|
+|Optimizer|AdamOptimizer|
+|Keep Probability| 0.5|
+
+#### Result
+
+|Epoch|Loss|
+|--|---|
+|0 |12.8303590662|
+|1 |5.7670175625|
+|2| 3.23522536235|
+|3| 1.96706364724|
+|4| 1.34534895296|
+|5| 1.02739088634|
+|6| 0.842822642681|
+|..|..|
+|18|0.598858683373|
+|19|0.596468009338|
+
+#### Functions Used in Implementation
+
+```load_vgg``` Loads the VGG16 pre trained network and returns the following tensors:
+
+a) Input Image tensor   
+b) Keep Probability tensor from the dropout layer   
+c) Pool3    
+d) Pool4   
+e) Layer 7 output   
+
+```layers``` adds the FCN layers on top of the VGG16 network. All nodes are scoped under ```fcn``` so that it is easier to pass them to the optimizer
+
+```optimize``` defines the loss function using cross entropy and uses AdamOptimizer as the minimizer
+
+```train_nn``` uses get_batches_fn, to train batches and then computes the loss for the Epoch. If it is the minimum loss so far, it is saved to './best.ckpt'
+
+#### Run
+
 Run the following command to run the project:
 ```
 python main.py
 ```
-**Note** If running this in Jupyter Notebook system messages, such as those regarding test status, may appear in the terminal rather than the notebook.
+#### Shortcomings
 
-### Submission
-1. Ensure you've passed all the unit tests.
-2. Ensure you pass all points on [the rubric](https://review.udacity.com/#!/rubrics/989/view).
-3. Submit the following in a zip file.
- - `helper.py`
- - `main.py`
- - `project_tests.py`
- - Newest inference images from `runs` folder  (**all images from the most recent run**)
- 
- ## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+1) **Shortage of data**. There are only 289 sample images using, which the model has been trained. Ideally would have liked to have more or I wish I had the time to augment the images.
+
+2) For each Epoch, training loss is printed but **validation loss has not been computed**. This is a big shortcoming, but since there were only 289 images, did not want to lower the training set by using only 20%
+
+3) **Intermediate layer outputs have not been visualized** to get a better understanding of whats happening
+
+4) **Training loss / validation loss has not been plotted**. This would have given a better understanding of how the model is progressing.
+
+5) **Normalization was not gauranteed.** Ideally, the input data should be normalized before training on it
