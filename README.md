@@ -1,3 +1,14 @@
+[//]: # (Image References)
+[tensorboard_vgg16]: ./images/tensorboard-vgg16.png
+[tensorboard_fcn]: ./images/tensorboard-fcn.png
+[tensorboard_fcn_expanded]: ./images/tensorboard-fcn-expanded.png
+[r1]: ./images/r1.png
+[r2]: ./images/r2.png
+[r3]: ./images/r3.png
+[r4]: ./images/r4.png
+[r5]: ./images/r5.png
+[r6]: ./images/r6.png
+
 # Semantic Segmentation
 
 ### Introduction
@@ -11,6 +22,28 @@ Pretrained VGG16 that already has 1x1 convolution layers has been used. As first
 Pool4 layer from VGG16 is then converted to 1x1x2, added with last layer and then upscaled by 2.
 
 Pool3 layer from VGG16 is then converted to 1x1x2, added with the Pool4+LastLayer, then upscaled by 8
+
+Pool3 and Pool4 have been scaled:
+```
+        pool4_scaled = tf.multiply(vgg_layer4_out,
+                                   0.01,
+                                   name='pool4_scaled')
+        pool3_scaled = tf.multiply(vgg_layer3_out,
+                                   0.0001,
+                                   name='pool3_scaled')
+```
+
+Pre Trained VGG16:
+
+![tensorboard_vgg16]
+
+Layers added for FCN:
+
+![tensorboard_fcn]
+
+Expanded View of FCN:
+
+![tensorboard_fcn_expanded]
 
 #### Training Data
 
@@ -49,17 +82,59 @@ Also, training has been limited to FCN layers only by passing the tensors to the
 #### Result
 
 |Epoch|Loss|
-|--|---|
-|0 |12.8303590662|
-|1 |5.7670175625|
-|2| 3.23522536235|
-|3| 1.96706364724|
-|4| 1.34534895296|
-|5| 1.02739088634|
-|6| 0.842822642681|
-|..|..|
-|18|0.598858683373|
-|19|0.596468009338|
+|--|--|
+|0|0.856127|
+|1|0.716539|
+|2|0.579595|
+|3|0.553754|
+|4|0.540536|
+|5|0.534390|
+|6|0.525746|
+|7|0.518950|
+|8|0.516656|
+|9|0.511462|
+|10|0.512257|
+|11|0.506197|
+|12|0.511851|
+|13|0.502442|
+|14|0.500948|
+|15|0.498363|
+|16|0.498124|
+|17|0.495945|
+|18|0.495053|
+|19|0.493778|
+|20|0.494700|
+|21|0.492560|
+|22|0.491225|
+|23|0.490542|
+|24|0.490618|
+|25|0.488722|
+|26|0.488861|
+|27|0.490507|
+|28|0.487316|
+|29|0.493022|
+|30|0.488068|
+|31|0.485862|
+|32|0.497051|
+|33|0.489108|
+|34|0.485316|
+|35|0.486346|
+|36|0.484651|
+|37|0.484712|
+|38|0.488365|
+|39|0.484685|
+|40|0.484506|
+|41|0.483310|
+|42|0.493712|
+|43|0.482944|
+
+#### Semantic Segmentation Result
+
+Few images from the semantic segmentation runs:
+
+
+
+
 
 #### Functions Used in Implementation
 

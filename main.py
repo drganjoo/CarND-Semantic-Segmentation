@@ -292,8 +292,8 @@ def run():
         # print(graph.get_collection(tf.GraphKeys.GLOBAL_VARIABLES))
 
         ## use tensorboard to save the graph and view it
-        test_writer = tf.summary.FileWriter('logs')
-        test_writer.add_graph(sess.graph)
+        # test_writer = tf.summary.FileWriter('logs')
+        # test_writer.add_graph(sess.graph)
 
         sess.run(tf.global_variables_initializer())
 
