@@ -78,7 +78,10 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
         # skip connection (add pool4 with upscaled layer 7)
 
-        pool4_1x1 = tf.layers.conv2d(vgg_layer4_out,
+        pool4_scaled = tf.multiply(vgg_layer4_out,
+                                   0.01,
+                                   name='pool4_scaled')
+        pool4_1x1 = tf.layers.conv2d(pool4_scaled,
                                      num_classes,
                                      1,
                                      padding = 'same',
@@ -102,8 +105,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                                    name='l7p4_upscaled')
 
         # skip connection, add pool3 with upscaled skipped l7+p4
+        pool3_scaled = tf.multiply(vgg_layer3_out,
+                                   0.0001,
+                                   name='pool3_scaled')
 
-        pool3_1x1 = tf.layers.conv2d(vgg_layer3_out,
+        pool3_1x1 = tf.layers.conv2d(pool3_scaled,
                                      num_classes,
                                      1,
                                      padding='same',
@@ -286,8 +292,8 @@ def run():
         # print(graph.get_collection(tf.GraphKeys.GLOBAL_VARIABLES))
 
         ## use tensorboard to save the graph and view it
-        # test_writer = tf.summary.FileWriter('logs')
-        # test_writer.add_graph(sess.graph)
+        test_writer = tf.summary.FileWriter('logs')
+        test_writer.add_graph(sess.graph)
 
         sess.run(tf.global_variables_initializer())
 
