@@ -245,24 +245,36 @@ def run():
         print_trainable()
         print('Freezing graph')
 
-        frozen_node_names = ['image_input', 'keep_prob', 'layer3_out', 'layer4_out', 'layer7_out']
+        frozen_node_names = ['keep_prob', 'layer3_out', 'layer4_out', 'layer7_out']
         graph_def = tf.graph_util.convert_variables_to_constants(
             sess,
             graph.as_graph_def(),
             frozen_node_names
         )
 
+        print('$'* 50)
+        print_trainable()
+
+        for op in graph.get_operations():
+            print(op.values())
+
+        print('check dnow')
+
         # with tf.gfile.GFile(frozen_graph, "wb") as f:
         #     f.write(graph_def.SerializeToString())
 
     tf.reset_default_graph()
 
+
     # with tf.gfile.GFile(frozen_graph, "rb") as f:
     #     graph_def = tf.GraphDef()
     #     graph_def.ParseFromString(f.read())
 
+    node_names = ['image_input:0', 'keep_prob:0', 'layer3_out:0', 'layer4_out:0','layer7_out:0']
+
     with tf.Session() as sess:
-        tf.import_graph_def(graph_def)
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = \
+            tf.import_graph_def(graph_def, name='', return_elements=node_names)
 
         graph = tf.get_default_graph()
 
@@ -273,11 +285,11 @@ def run():
             print(n.name)
 
         print('*' * 100)
-        
-        for op in graph.get_operations():
-            print(op.name)
 
-        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph, frozen_node_names)
+        for op in graph.get_operations():
+            print(op.values())
+
+        # input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_graph_nodes(graph, frozen_node_names)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
         # TODO: Train NN using the train_nn function
