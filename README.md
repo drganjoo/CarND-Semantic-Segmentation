@@ -19,9 +19,9 @@ The goal of the project is to identify parts of road in given images. Semantic S
 
 Pretrained VGG16 that already has 1x1 convolution layers has been used. As first step, the last layer is converted from 1x1x4096 to 1x1x2 (as there are 2 classes, road and not-road). The last layer is then upscaled by 2.
 
-Pool4 layer from VGG16 is then converted to 1x1x2, added with last layer and then upscaled by 2.
+Pool4 layer from VGG16 is then scaled by 0.01, converted to 1x1x2 and then added with last layer and then upscaled by 2.
 
-Pool3 layer from VGG16 is then converted to 1x1x2, added with the Pool4+LastLayer, then upscaled by 8
+Pool3 layer from VGG16 is then scaled by 0.0001, converted to 1x1x2 and then added with the Pool4+LastLayer. It is then upscaled by 8.
 
 Pool3 and Pool4 have been scaled:
 ```
@@ -130,10 +130,14 @@ Also, training has been limited to FCN layers only by passing the tensors to the
 
 #### Semantic Segmentation Result
 
-Few images from the semantic segmentation runs:
+Few images from the semantic segmentation runs. The parts shown in green have been classified as road.
 
-
-
+![r1]
+![r2]
+![r3]
+![r4]
+![r5]
+![r6]
 
 
 #### Functions Used in Implementation
